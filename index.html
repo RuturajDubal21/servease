@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ServEase – Smart Local Service Finder | AI Chatbot & Individual Bookings</title>
-  <meta name="description" content="Book verified electricians, plumbers, mechanics, carpenters, cleaners, AC technicians, and handymen individually with AI Diagnostic Chatbot." />
+  <title>ServEase – Smart Local Service Finder | AI Diagnostic Chatbot & Services</title>
+  <meta name="description" content="Book verified electricians, plumbers, mechanics, carpenters, cleaners, or chat with our 24/7 AI Diagnostic Assistant for instant image analysis and solutions." />
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F4C430'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg>" />
@@ -34,10 +34,6 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   
-  <!-- Lucide Icons Bundle -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://unpkg.com/lucide-react@0.344.0/dist/umd/lucide-react.min.js" crossorigin></script>
-
   <!-- Babel Standalone -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
@@ -49,14 +45,12 @@
     @keyframes pulseGlow { 0%, 100% { opacity: 0.3; filter: blur(25px); transform: scale(1); } 50% { opacity: 0.75; filter: blur(35px); transform: scale(1.08); } }
     @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
     @keyframes scaleIn { 0% { opacity: 0; transform: scale(0.91); } 100% { opacity: 1; transform: scale(1); } }
-    @keyframes scannerBar { 0% { top: 0%; opacity: 0.9; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0.1; } }
     @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
     .animate-float { animation: float 4s ease-in-out infinite; }
     .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
     .animate-slide-up { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     .animate-scale-in { animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .animate-scanner { animation: scannerBar 2.2s ease-in-out infinite; }
 
     .smooth-card { transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
     .smooth-card:hover { transform: translateY(-8px) scale(1.015); box-shadow: 0 22px 40px -12px rgba(11, 45, 107, 0.18); }
@@ -70,13 +64,12 @@
     .shimmer-btn:hover::after { animation: shimmer 1.2s infinite; }
   </style>
 </head>
-<body class="bg-[#F5F7FA] text-slate-900 antialiased selection:bg-[#F4C430] selection:text-[#0B2D6B]">
+<body class="bg-[#F5F7FA] text-slate-900 antialiased">
   <div id="root"></div>
 
   <!-- Client React Script Bundle -->
   <script type="text/babel">
-    const { useState, useEffect } = React;
-    const Lucide = window.lucideReact || window.LucideReact || {};
+    const { useState, useEffect, useRef } = React;
 
     const mockAuthStore = {
       currentUser: JSON.parse(localStorage.getItem('servease_user') || 'null'),
@@ -85,6 +78,23 @@
         this.listeners.push(cb);
         cb(this.currentUser);
         return () => { this.listeners = this.listeners.filter(l => l !== cb); };
+      },
+      signInCustomer() {
+        const u = { uid: 'u_customer', email: 'ruturaj@example.com', displayName: 'Ruturaj Dubal', role: 'customer' };
+        this.currentUser = u;
+        localStorage.setItem('servease_user', JSON.stringify(u));
+        this.listeners.forEach(l => l(u));
+      },
+      signInProvider() {
+        const u = { uid: 'p_amit', email: 'amit.verma@servease.com', displayName: 'Amit Kumar Verma', role: 'provider', category: 'Plumber & Electrician', rating: 4.9, avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250' };
+        this.currentUser = u;
+        localStorage.setItem('servease_user', JSON.stringify(u));
+        this.listeners.forEach(l => l(u));
+      },
+      signOut() {
+        this.currentUser = null;
+        localStorage.removeItem('servease_user');
+        this.listeners.forEach(l => l(null));
       }
     };
 
@@ -98,6 +108,96 @@
       { id: 'appliance', name: 'Home Appliance Repair', price: '₹349', basePrice: 349, desc: 'Washing machine, refrigerator, microwave & RO water filter repair.', provider: 'Prakash Appliance Hub (4.75 ★)', badge: '90-Day Warranty' },
       { id: 'handyman', name: 'Other Household Services', price: '₹249', basePrice: 249, desc: 'Handyman drilling, TV wall mounting, pest control & odd jobs.', provider: 'Ganesh Handyman (4.9 ★)', badge: 'Quick Handyman' }
     ];
+
+    // DEDICATED SERVICE PROVIDER DASHBOARD INTERFACE
+    function ProviderDashboard({ user, onSwitchToCustomer, onSignOut }) {
+      const [status, setStatus] = useState('Available Now');
+      const [jobs, setJobs] = useState([
+        { id: '101', customer: 'Ruturaj Dubal', location: 'Kothrud, Pune (1.2 km)', issue: 'Continuous Tap Leakage', diagnosis: 'Damaged Cartridge (91% confidence)', parts: ['Tap Cartridge C-14 ×1', 'O-Ring ×2'], earnings: '₹450', isAccepted: false },
+        { id: '102', customer: 'Shravi Gaikwad', location: 'Deccan Gymkhana (2.5 km)', issue: 'Main Switchboard Sparking', diagnosis: 'Short Circuit Arc (95% confidence)', parts: ['16A Modular Socket ×1', 'MCB Breaker ×1'], earnings: '₹680', isAccepted: false }
+      ]);
+
+      return (
+        <div className="min-h-screen bg-slate-900 text-white font-sans">
+          <header className="bg-[#0B2D6B] border-b border-blue-900 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#F4C430] text-[#0B2D6B] font-black flex items-center justify-center rounded-xl text-xl">👨‍🔧</div>
+              <div>
+                <h1 className="text-xl font-black text-white">ServEase Provider Portal</h1>
+                <span className="text-xs text-blue-200">Verified Technician Command Dashboard</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <select value={status} onChange={e=>setStatus(e.target.value)} className="bg-blue-950 text-white font-bold text-xs p-2 rounded-xl border border-blue-800">
+                <option value="Available Now">🟢 Available Now</option>
+                <option value="Emergency Ready">🚨 Emergency Ready</option>
+                <option value="Busy">🔴 Busy / On Job</option>
+              </select>
+              <button onClick={onSwitchToCustomer} className="px-3 py-2 bg-blue-900 text-white text-xs font-bold rounded-xl border border-blue-700">Customer View</button>
+              <button onClick={onSignOut} className="px-3 py-2 bg-rose-950 text-rose-300 text-xs font-bold rounded-xl border border-rose-800">Sign Out</button>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto p-6 space-y-8">
+            <div className="bg-gradient-to-r from-[#0B2D6B] to-[#071939] p-6 rounded-3xl border-2 border-yellow-400/40 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <img src={user.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250'} alt="Avatar" className="w-16 h-16 rounded-2xl object-cover border-2 border-[#F4C430]" />
+                <div>
+                  <h2 className="text-2xl font-black text-white">{user.displayName}</h2>
+                  <p className="text-xs text-blue-200">Master Plumber & Electrician • 4.9 ★ Rating</p>
+                </div>
+              </div>
+              <div className="flex gap-4 text-center">
+                <div className="bg-blue-950 p-4 rounded-2xl border border-blue-800">
+                  <span className="text-[10px] text-blue-300 block uppercase font-bold">Monthly Earnings</span>
+                  <span className="text-xl font-black text-[#F4C430]">₹42,500</span>
+                </div>
+                <div className="bg-blue-950 p-4 rounded-2xl border border-blue-800">
+                  <span className="text-[10px] text-blue-300 block uppercase font-bold">Completed Jobs</span>
+                  <span className="text-xl font-black text-emerald-400">189</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-black text-white">🔔 Live Incoming AI Dispatch Requests ({jobs.length})</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {jobs.map(j => (
+                  <div key={j.id} className={`p-6 rounded-3xl border-2 space-y-3 ${j.isAccepted ? 'bg-emerald-950 border-emerald-500' : 'bg-slate-800 border-blue-700'}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] text-[#F4C430] font-extrabold uppercase">Job Order #{j.id}</span>
+                        <h4 className="text-lg font-black text-white">{j.customer}</h4>
+                        <p className="text-xs text-slate-300">📍 {j.location}</p>
+                      </div>
+                      <span className="text-xl font-black text-[#F4C430]">{j.earnings}</span>
+                    </div>
+
+                    <div className="p-3 bg-blue-950 rounded-xl text-xs space-y-1">
+                      <div className="font-bold text-white">Issue: {j.issue}</div>
+                      <div className="text-blue-200">🧠 AI Diagnosis: {j.diagnosis}</div>
+                    </div>
+
+                    <div className="p-3 bg-slate-900 rounded-xl text-xs">
+                      <div className="font-bold text-emerald-400">📦 Pre-Reserved Parts: {j.parts.join(', ')} ✓</div>
+                    </div>
+
+                    {j.isAccepted ? (
+                      <div className="p-3 bg-emerald-900 text-emerald-200 text-center font-bold text-xs rounded-xl">✓ Job Accepted! En route to customer.</div>
+                    ) : (
+                      <button onClick={() => setJobs(jobs.map(x => x.id === j.id ? { ...x, isAccepted: true } : x))} className="w-full py-3 bg-[#F4C430] text-[#0B2D6B] font-black rounded-xl text-xs hover:bg-yellow-400">
+                        Accept Job & Dispatch Prepared
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
 
     // 1. Direct Service Booking Component
     function DirectServiceBookingHub() {
@@ -210,13 +310,24 @@
         {
           id: 1,
           sender: 'bot',
-          text: 'Hello! I am ServEase AI Diagnostic Bot 🤖. Upload a photo of your broken fixture or type your problem below, and I will analyze the symptoms, guide safe DIY fixes, predict required parts, and match you with a verified technician!',
+          text: 'Hello! I am ServEase AI Diagnostic Bot 🤖. Upload a photo of your broken appliance/fixture or type your problem below, and I will analyze the symptoms, guide safe DIY fixes, predict required parts, and match you with a verified technician!',
           timestamp: 'Just now'
         }
       ]);
       const [inputText, setInputText] = useState('');
       const [typing, setTyping] = useState(false);
       const [attachedImg, setAttachedImg] = useState(null);
+      const chatEndRef = useRef(null);
+
+      const scrollToBottom = () => {
+        if (chatEndRef.current) {
+          chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      };
+
+      useEffect(() => {
+        scrollToBottom();
+      }, [messages, typing]);
 
       const handleImageAttach = (e) => {
         const file = e.target.files && e.target.files[0];
@@ -261,7 +372,7 @@
           };
 
           const l = (prompt || '').toLowerCase();
-          if (l.includes('ac') || l.includes('cool') || l.includes('air')) {
+          if (l.includes('ac') || l.includes('cool') || l.includes('air') || l.includes('gas')) {
             diagnosisData = {
               title: 'AC Capacitor Failure & Filter Clogging',
               confidence: '92%',
@@ -273,7 +384,7 @@
               parts: ['45 MFD Dual Run Capacitor (₹450)', 'R32 Eco Gas Canister (₹850)'],
               trade: 'AC Repair Specialist'
             };
-          } else if (l.includes('spark') || l.includes('mcb') || l.includes('electric') || l.includes('wire')) {
+          } else if (l.includes('spark') || l.includes('mcb') || l.includes('electric') || l.includes('wire') || l.includes('switch')) {
             diagnosisData = {
               title: 'Overloaded Terminal Short Circuit',
               confidence: '95%',
@@ -285,13 +396,25 @@
               parts: ['16A Modular Socket (₹220)', 'Single Pole 16A MCB (₹310)'],
               trade: 'Electrician'
             };
+          } else if (l.includes('engine') || l.includes('car') || l.includes('bike') || l.includes('mechanic') || l.includes('tyre')) {
+            diagnosisData = {
+              title: 'Battery Voltage Drop & Starter Relay Issue',
+              confidence: '91%',
+              steps: [
+                '1. Check battery terminals for white sulfate powder corrosion.',
+                '2. Turn off headlights and AC before attempting crank.',
+                '3. Use jumper cables with another vehicle if available.'
+              ],
+              parts: ['12V Automotive Battery Jump Cable (₹350)', 'Starter Relay Switch (₹450)'],
+              trade: 'Mechanic'
+            };
           }
 
           setTyping(false);
           setMessages(prev => [...prev, {
             id: Date.now() + 1,
             sender: 'bot',
-            text: 'AI Visual Diagnosis Complete!',
+            text: 'AI Visual Diagnosis Complete! Here is the analysis and action plan:',
             diagnosis: diagnosisData,
             timestamp: 'Just now'
           }]);
@@ -303,26 +426,31 @@
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-10 animate-slide-up">
               <span className="px-4 py-1.5 rounded-full bg-yellow-400/20 text-[#F4C430] border border-[#F4C430]/40 text-xs font-black uppercase tracking-wider inline-block mb-3">
-                💬 Interactive AI Chatbot Feature
+                💬 24/7 AI Diagnostic Chatbot
               </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">AI Diagnostic Chatbot Assistant</h2>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">ServEase AI Chatbot Assistant</h2>
               <p className="text-blue-100 text-sm">
-                Chat with ServEase AI, upload issue photos directly in the thread, and get instant step-by-step solutions!
+                Upload your problem photo or describe what is broken. The AI will diagnose the issue, give you step-by-step DIY fixes, predict parts, and book a verified technician!
               </p>
             </div>
 
-            <div className="bg-blue-950 rounded-3xl border-2 border-blue-800 shadow-2xl overflow-hidden flex flex-col h-[600px]">
+            <div className="bg-blue-950 rounded-3xl border-2 border-blue-800 shadow-2xl overflow-hidden flex flex-col h-[620px]">
+              {/* Header */}
               <div className="bg-[#0B2D6B] p-4 border-b border-blue-800 flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#F4C430] text-[#0B2D6B] flex items-center justify-center font-black text-xl">🤖</div>
+                  <div className="w-10 h-10 rounded-xl bg-[#F4C430] text-[#0B2D6B] flex items-center justify-center font-black text-xl shadow-md">🤖</div>
                   <div>
                     <h3 className="font-black text-white text-base">ServEase AI Assistant</h3>
-                    <p className="text-xs text-emerald-400 font-bold">● Online • Photo & Text Ready</p>
+                    <p className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Online • Image Vision & Diagnostic Ready
+                    </p>
                   </div>
                 </div>
-                <button onClick={() => setMessages([{ id: 1, sender: 'bot', text: 'Hello! Upload a photo or describe your issue below!', timestamp: 'Just now' }])} className="text-xs text-blue-300 hover:text-white px-3 py-1 bg-blue-900 rounded-lg border border-blue-700">Clear</button>
+                <button onClick={() => setMessages([{ id: 1, sender: 'bot', text: 'Hello! I am ServEase AI Diagnostic Bot 🤖. Upload a photo or describe your issue below!', timestamp: 'Just now' }])} className="text-xs text-blue-300 hover:text-white px-3 py-1 bg-blue-900 rounded-lg border border-blue-700">Clear Chat</button>
               </div>
 
+              {/* Messages Thread */}
               <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
                 {messages.map(m => (
                   <div key={m.id} className={`flex gap-3 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -340,15 +468,15 @@
                             <span className="px-2.5 py-1 bg-[#0B2D6B] text-[#F4C430] font-black rounded-full text-[11px]">{m.diagnosis.confidence} Match</span>
                           </div>
                           <div className="space-y-1">
-                            <strong className="text-[#0B2D6B] block">🟢 Recommended Solution:</strong>
+                            <strong className="text-[#0B2D6B] block">🟢 Recommended Solution & DIY Steps:</strong>
                             {m.diagnosis.steps.map((st, i) => (
                               <div key={i} className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-800 font-medium">{st}</div>
                             ))}
                           </div>
                           <div className="p-2.5 bg-yellow-50 rounded-xl border border-yellow-200 font-bold text-amber-900">
-                            📦 Predicted Parts: {m.diagnosis.parts.join(', ')}
+                            📦 Predicted Parts Required: {m.diagnosis.parts.join(', ')}
                           </div>
-                          <button onClick={() => alert(`Matched top verified ${m.diagnosis.trade} with pre-reserved parts!`)} className="shimmer-btn w-full py-2.5 bg-[#0B2D6B] text-white font-extrabold rounded-xl hover:bg-[#F4C430] hover:text-[#0B2D6B] transition-all">
+                          <button onClick={() => alert(`Matched top verified ${m.diagnosis.trade} with pre-reserved parts! Preparing dispatch.`)} className="shimmer-btn w-full py-2.5 bg-[#0B2D6B] text-white font-extrabold rounded-xl hover:bg-[#F4C430] hover:text-[#0B2D6B] transition-all">
                             Dispatch Verified {m.diagnosis.trade} →
                           </button>
                         </div>
@@ -357,31 +485,43 @@
                     </div>
                   </div>
                 ))}
-
-                {typing && <div className="text-xs text-blue-200 italic">🤖 ServEase AI is analyzing symptoms...</div>}
+                {typing && (
+                  <div className="flex items-center gap-2 text-xs text-blue-200 italic p-2 bg-blue-900/40 rounded-xl w-fit">
+                    <span className="w-2 h-2 rounded-full bg-[#F4C430] animate-ping"></span>
+                    🤖 ServEase AI is analyzing image pixels & symptoms...
+                  </div>
+                )}
+                <div ref={chatEndRef} />
               </div>
 
+              {/* Sample Prompts */}
               <div className="px-4 py-2 bg-blue-900/40 border-t border-blue-800/80 flex flex-wrap gap-2 text-xs">
                 <span className="text-blue-300 font-bold self-center">Try:</span>
                 <button onClick={() => handleSend('Analyze bathroom tap leak photo')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">💧 Tap Leak</button>
-                <button onClick={() => handleSend('AC blowing warm air and humming')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">❄️ AC Warm Air</button>
+                <button onClick={() => handleSend('AC blowing warm air and humming sound')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">❄️ AC Warm Air</button>
                 <button onClick={() => handleSend('Sparking circuit breaker tripping')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">⚡ Sparking Outlet</button>
+                <button onClick={() => handleSend('Car engine clicking and won’t start')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">🚗 Engine Won't Start</button>
               </div>
 
+              {/* Attached Image Bar */}
               {attachedImg && (
                 <div className="px-4 py-2 bg-blue-900 border-t border-blue-800 flex items-center justify-between text-xs text-white">
-                  <span>Photo attached: {attachedImg.name}</span>
-                  <button onClick={() => setAttachedImg(null)} className="text-rose-400 font-bold">✕</button>
+                  <div className="flex items-center gap-2">
+                    <img src={attachedImg.url} alt="Attached" className="w-6 h-6 object-cover rounded" />
+                    <span>Photo attached: <strong>{attachedImg.name}</strong></span>
+                  </div>
+                  <button onClick={() => setAttachedImg(null)} className="text-rose-400 font-bold hover:text-white">✕</button>
                 </div>
               )}
 
+              {/* Input Form */}
               <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="p-4 bg-blue-950 border-t border-blue-800 flex items-center gap-3">
-                <label className="p-3 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-[#F4C430] rounded-xl cursor-pointer transition-colors border border-blue-700" title="Attach Photo">
+                <label className="p-3 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-[#F4C430] rounded-xl cursor-pointer transition-colors border border-blue-700 flex items-center justify-center shrink-0" title="Attach Photo from Computer">
                   📷
                   <input type="file" accept="image/*" onChange={handleImageAttach} className="hidden" />
                 </label>
-                <input type="text" placeholder="Type your issue or attach photo..." value={inputText} onChange={e => setInputText(e.target.value)} className="flex-1 bg-blue-900 text-white p-3 rounded-xl border border-blue-700 text-xs focus:ring-2 focus:ring-[#F4C430] outline-none" />
-                <button type="submit" className="shimmer-btn p-3 bg-[#F4C430] text-[#0B2D6B] font-extrabold rounded-xl hover:bg-yellow-400">Send</button>
+                <input type="text" placeholder="Describe problem or attach photo to analyze..." value={inputText} onChange={e => setInputText(e.target.value)} className="flex-1 bg-blue-900 text-white p-3 rounded-xl border border-blue-700 text-xs focus:ring-2 focus:ring-[#F4C430] outline-none" />
+                <button type="submit" className="shimmer-btn px-5 py-3 bg-[#F4C430] text-[#0B2D6B] font-extrabold rounded-xl hover:bg-yellow-400 shrink-0">Send</button>
               </form>
             </div>
           </div>
@@ -389,13 +529,61 @@
       );
     }
 
-    // Navbar
-    function Navbar({ user, onOpenAuth }) {
+    // Floating AI Chatbot Launcher Widget
+    function FloatingChatWidget() {
+      const [isOpen, setIsOpen] = useState(false);
+
       return (
-        <header className="sticky top-0 z-50 bg-[#0B2D6B]/95 backdrop-blur-md text-white border-b border-blue-900/50 shadow-lg">
+        <div className="fixed bottom-6 right-6 z-50">
+          {isOpen ? (
+            <div className="bg-white rounded-3xl shadow-2xl border-2 border-[#0B2D6B] w-80 sm:w-96 p-4 animate-scale-in text-slate-900 space-y-3">
+              <div className="flex justify-between items-center border-b pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🤖</span>
+                  <div>
+                    <h4 className="font-black text-sm text-[#0B2D6B]">ServEase Quick AI Help</h4>
+                    <span className="text-[10px] text-emerald-600 font-bold">● Online 24/7</span>
+                  </div>
+                </div>
+                <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-800 font-bold">✕</button>
+              </div>
+              <p className="text-xs text-slate-600">
+                Need quick diagnostics or want to jump to the full AI Chatbot?
+              </p>
+              <div className="space-y-2">
+                <a
+                  href="#ai-chatbot"
+                  onClick={() => setIsOpen(false)}
+                  className="block text-center w-full py-2.5 bg-[#0B2D6B] hover:bg-[#F4C430] hover:text-[#0B2D6B] text-white font-extrabold text-xs rounded-xl transition-all"
+                >
+                  Open Full AI Chatbot Section ↓
+                </a>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsOpen(true)}
+              className="shimmer-btn flex items-center gap-2.5 px-4 py-3 bg-[#0B2D6B] text-white rounded-full shadow-2xl border-2 border-[#F4C430] hover:scale-105 transition-transform"
+              title="Click to open AI Chatbot"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#F4C430] text-[#0B2D6B] flex items-center justify-center font-bold text-base shadow">
+                🤖
+              </div>
+              <span className="text-xs font-black hidden sm:inline text-[#F4C430]">AI Diagnostic Chat</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // Navbar
+    function Navbar({ user, onOpenAuth, onProviderLogin }) {
+      return (
+        <header className="sticky top-0 z-40 bg-[#0B2D6B]/95 backdrop-blur-md text-white border-b border-blue-900/50 shadow-lg">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <a href="#home" className="flex items-center space-x-3 group">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#F4C430] to-yellow-300 flex items-center justify-center text-[#0B2D6B] font-black text-xl shadow-md group-hover:rotate-12 transition-transform">⚡</div>
+            <a href="#home" className="flex items-center space-x-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#F4C430] to-yellow-300 flex items-center justify-center text-[#0B2D6B] font-black text-xl shadow-md">⚡</div>
               <div>
                 <span className="text-2xl font-black text-white">Serv<span className="text-[#F4C430]">Ease</span></span>
                 <span className="text-[10px] block text-blue-200 font-semibold uppercase -mt-1">Smart Service Finder</span>
@@ -404,32 +592,38 @@
 
             <nav className="hidden lg:flex items-center space-x-4 text-xs font-medium text-blue-100">
               <a href="#home" className="hover:text-[#F4C430]">Home</a>
-              <a href="#direct-booking" className="text-[#F4C430] font-bold bg-yellow-400/10 px-2.5 py-1 rounded-lg border border-[#F4C430]/30">🎯 Book Services</a>
-              <a href="#ai-chatbot" className="hover:text-[#F4C430]">🤖 AI Chatbot</a>
+              <a href="#ai-chatbot" className="text-[#F4C430] font-bold bg-yellow-400/10 px-2.5 py-1 rounded-lg border border-[#F4C430]/30 hover:bg-yellow-400/20 transition-all">🤖 AI Chatbot</a>
+              <a href="#direct-booking" className="hover:text-[#F4C430]">🎯 Book Services</a>
               <a href="#features" className="hover:text-[#F4C430]">Features</a>
               <a href="#how-it-works" className="hover:text-[#F4C430]">How It Works</a>
-              <a href="#services" className="hover:text-[#F4C430]">Services</a>
               <a href="#about" className="hover:text-[#F4C430]">About</a>
               <a href="#contact" className="hover:text-[#F4C430]">Contact</a>
             </nav>
 
-            <button onClick={onOpenAuth} className="shimmer-btn px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-lg bg-[#F4C430] text-[#0B2D6B] hover:bg-yellow-400">
-              {user ? `Logged in: ${user.displayName}` : 'Sign In / Register'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={onProviderLogin} className="px-3 py-2 text-xs font-bold rounded-lg text-[#F4C430] border border-[#F4C430]/40 hover:bg-[#F4C430]/10 flex items-center gap-1">
+                👨‍🔧 Provider Login
+              </button>
+              <button onClick={onOpenAuth} className="px-4 py-2 text-xs sm:text-sm font-extrabold rounded-lg bg-[#F4C430] text-[#0B2D6B] hover:bg-yellow-400">
+                {user ? `Logged in: ${user.displayName}` : 'Sign In'}
+              </button>
+            </div>
           </div>
         </header>
       );
     }
 
     // Hero Section
-    function Hero() {
+    function Hero({ onProviderLogin }) {
       return (
         <section id="home" className="relative bg-gradient-to-b from-[#0B2D6B] via-[#0D3478] to-[#071F4B] text-white pt-12 pb-20 overflow-hidden">
+          <div className="absolute top-10 right-10 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse-glow pointer-events-none"></div>
+
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-7 space-y-6 text-center lg:text-left animate-slide-up">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-900/70 border border-[#F4C430]/40 text-[#F4C430] text-xs font-semibold">
-                  ⚡ Smart Platform for Verified Local Service Providers
+                  ⚡ Smart Platform with 24/7 AI Diagnostic Chatbot
                 </div>
 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]">
@@ -437,15 +631,15 @@
                 </h1>
 
                 <p className="text-lg sm:text-xl text-blue-100 max-w-2xl">
-                  Book verified electricians, plumbers, mechanics, carpenters, and cleaners near you with transparent pricing and real customer reviews.
+                  Chat with our AI bot to diagnose issues, predict parts, or book verified electricians, plumbers, mechanics, carpenters, and cleaners near you!
                 </p>
 
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                  <a href="#direct-booking" className="shimmer-btn w-full sm:w-auto px-8 py-4 rounded-xl bg-[#F4C430] text-[#0B2D6B] font-extrabold text-base hover:bg-yellow-400 shadow-xl text-center">
-                    🎯 Book Individual Service Now →
+                  <a href="#ai-chatbot" className="shimmer-btn w-full sm:w-auto px-8 py-4 rounded-xl bg-[#F4C430] text-[#0B2D6B] font-extrabold text-base hover:bg-yellow-400 shadow-xl text-center">
+                    🤖 Chat with AI Diagnostic Bot →
                   </a>
-                  <a href="#ai-chatbot" className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/10 text-white font-bold text-base border border-white/20 text-center hover:bg-white/20">
-                    🤖 AI Chatbot Assistant
+                  <a href="#direct-booking" className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-base border border-white/20 text-center">
+                    🎯 Book Services by Name
                   </a>
                 </div>
               </div>
@@ -472,16 +666,27 @@
         return mockAuthStore.onAuthStateChanged(setUser);
       }, []);
 
+      // If logged in as Provider, show Provider Dashboard
+      if (user && user.role === 'provider') {
+        return (
+          <ProviderDashboard
+            user={user}
+            onSwitchToCustomer={() => mockAuthStore.signInCustomer()}
+            onSignOut={() => mockAuthStore.signOut()}
+          />
+        );
+      }
+
       return (
-        <div className="min-h-screen bg-slate-50">
-          <Navbar user={user} onOpenAuth={() => setAuthModalOpen(true)} />
-          <Hero />
+        <div className="min-h-screen bg-slate-50 relative">
+          <Navbar user={user} onOpenAuth={() => setAuthModalOpen(true)} onProviderLogin={() => mockAuthStore.signInProvider()} />
+          <Hero onProviderLogin={() => mockAuthStore.signInProvider()} />
 
-          {/* 1. Direct Service Booking Portal */}
-          <DirectServiceBookingHub />
-
-          {/* 2. Interactive AI Diagnostic Chatbot Assistant */}
+          {/* 1. Dedicated AI Diagnostic Chatbot Section */}
           <AiChatbotAssistant />
+
+          {/* 2. Direct Service Booking Portal */}
+          <DirectServiceBookingHub />
 
           {/* Features */}
           <section id="features" className="py-20 bg-[#F5F7FA]">
@@ -523,27 +728,6 @@
             </div>
           </section>
 
-          {/* About & Problem Statement */}
-          <section id="about" className="py-20 bg-[#F5F7FA]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white p-8 rounded-3xl border border-rose-200 space-y-3 smooth-card">
-                <span className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded">The Problem</span>
-                <h3 className="text-2xl font-black text-slate-900">Traditional Local Hiring is Slow & Unverified</h3>
-                <blockquote className="text-slate-700 italic border-l-4 border-rose-400 pl-4 py-2 text-sm bg-rose-50">
-                  “People often struggle to find reliable local workers in unfamiliar areas. Traditional recommendations are slow, unverified, and may lead to overcharging or poor service quality.”
-                </blockquote>
-              </div>
-
-              <div className="bg-[#0B2D6B] text-white p-8 rounded-3xl border border-yellow-400 space-y-3 smooth-card">
-                <span className="text-xs font-bold text-[#F4C430] bg-blue-900 px-3 py-1 rounded">The ServEase Solution</span>
-                <h3 className="text-2xl font-black text-white">Smart Location & AI Diagnostic Matching</h3>
-                <p className="text-blue-100 text-sm bg-blue-950 p-4 rounded-xl">
-                  “ServEase connects users with verified local professionals using location-based matching, ratings, reviews, availability tracking, and estimated pricing.”
-                </p>
-              </div>
-            </div>
-          </section>
-
           {/* Contact & Footer */}
           <section id="contact" className="py-20 bg-[#F5F7FA]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
@@ -559,6 +743,9 @@
               Developed by Ruturaj Dubal & Shravi Gaikwad
             </div>
           </footer>
+
+          {/* Persistent Floating AI Chatbot Widget */}
+          <FloatingChatWidget />
         </div>
       );
     }
