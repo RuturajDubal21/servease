@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ServEase – Smart Local Service Finder | AI Chatbot & Individual Bookings</title>
+  <meta name="description" content="Book verified electricians, plumbers, mechanics, carpenters, cleaners, AC technicians, and handymen individually with AI Diagnostic Chatbot." />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F4C430'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg>" />
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { 900: '#0B2D6B', 950: '#071939' },
+            gold: { 400: '#F4C430', 500: '#E5B420' }
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Lucide Icons Bundle -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide-react@0.344.0/dist/umd/lucide-react.min.js" crossorigin></script>
+
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Custom Master Animations Stylesheet -->
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F5F7FA; overflow-x: hidden; }
+
+    @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-12px) rotate(1.2deg); } }
+    @keyframes pulseGlow { 0%, 100% { opacity: 0.3; filter: blur(25px); transform: scale(1); } 50% { opacity: 0.75; filter: blur(35px); transform: scale(1.08); } }
+    @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes scaleIn { 0% { opacity: 0; transform: scale(0.91); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes scannerBar { 0% { top: 0%; opacity: 0.9; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0.1; } }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
+    .animate-slide-up { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-scale-in { animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-scanner { animation: scannerBar 2.2s ease-in-out infinite; }
+
+    .smooth-card { transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+    .smooth-card:hover { transform: translateY(-8px) scale(1.015); box-shadow: 0 22px 40px -12px rgba(11, 45, 107, 0.18); }
+
+    .shimmer-btn { position: relative; overflow: hidden; transition: all 0.3s ease-out; }
+    .shimmer-btn::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+      transform: skewX(-20deg); transition: all 0.5s;
+    }
+    .shimmer-btn:hover::after { animation: shimmer 1.2s infinite; }
+  </style>
+</head>
+<body class="bg-[#F5F7FA] text-slate-900 antialiased selection:bg-[#F4C430] selection:text-[#0B2D6B]">
+  <div id="root"></div>
+
+  <!-- Client React Script Bundle -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const Lucide = window.lucideReact || window.LucideReact || {};
+
+    const mockAuthStore = {
+      currentUser: JSON.parse(localStorage.getItem('servease_user') || 'null'),
+      listeners: [],
+      onAuthStateChanged(cb) {
+        this.listeners.push(cb);
+        cb(this.currentUser);
+        return () => { this.listeners = this.listeners.filter(l => l !== cb); };
+      }
+    };
+
+    const individualServices = [
+      { id: 'electrician', name: 'Electrician', price: '₹299', basePrice: 299, desc: 'Wiring, short circuit repairs, switchboard & MCB replacement.', provider: 'Rajesh Sharma (4.9 ★)', badge: 'Popular' },
+      { id: 'plumber', name: 'Plumber', price: '₹349', basePrice: 349, desc: 'Pipe leakage fix, tap mixer fitting, unclogging & bathroom installs.', provider: 'Amit Kumar Verma (4.8 ★)', badge: 'Fast Dispatch' },
+      { id: 'mechanic', name: 'Mechanic', price: '₹499', basePrice: 499, desc: 'Roadside vehicle breakdown, battery jumpstart & engine service.', provider: 'Suresh Patil (4.9 ★)', badge: '24/7 Emergency' },
+      { id: 'carpenter', name: 'Carpenter', price: '₹399', basePrice: 399, desc: 'Furniture repair, door locks, custom woodwork & modular kitchen.', provider: 'Manoj Carpenter (4.7 ★)', badge: 'Top Rated' },
+      { id: 'cleaner', name: 'Cleaner', price: '₹599', basePrice: 599, desc: 'Full home deep cleaning, sofa sanitization & kitchen degreasing.', provider: 'Sunita Deshmukh (4.95 ★)', badge: 'Eco-Friendly' },
+      { id: 'ac', name: 'AC Repair', price: '₹449', basePrice: 449, desc: 'Foam jet servicing, gas charging, PCB repair & installation.', provider: 'Vikas Technocare (4.85 ★)', badge: 'High Demand' },
+      { id: 'appliance', name: 'Home Appliance Repair', price: '₹349', basePrice: 349, desc: 'Washing machine, refrigerator, microwave & RO water filter repair.', provider: 'Prakash Appliance Hub (4.75 ★)', badge: '90-Day Warranty' },
+      { id: 'handyman', name: 'Other Household Services', price: '₹249', basePrice: 249, desc: 'Handyman drilling, TV wall mounting, pest control & odd jobs.', provider: 'Ganesh Handyman (4.9 ★)', badge: 'Quick Handyman' }
+    ];
+
+    // 1. Direct Service Booking Component
+    function DirectServiceBookingHub() {
+      const [activeService, setActiveService] = useState(null);
+      const [userAddress, setUserAddress] = useState('Flat 402, Paud Road, Kothrud, Pune');
+      const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0]);
+      const [timeSlot, setTimeSlot] = useState('10:00 AM - 12:00 PM');
+      const [isEmergency, setIsEmergency] = useState(false);
+      const [confirmed, setConfirmed] = useState(false);
+
+      return (
+        <section id="direct-booking" className="py-20 bg-white relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-14 animate-slide-up">
+              <span className="px-4 py-1.5 rounded-full bg-blue-100 text-[#0B2D6B] text-xs font-black uppercase tracking-wider inline-block mb-3">
+                🎯 Direct Individual Service Booking Portal
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B2D6B] tracking-tight">Book Individual Services directly by Name</h2>
+              <p className="text-slate-600 text-sm sm:text-base">Click any dedicated service booking option below to instantly schedule your verified master technician.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {individualServices.map((srv) => (
+                <div key={srv.id} className="bg-[#F5F7FA] p-6 rounded-3xl border border-slate-200 hover:border-[#0B2D6B] hover:bg-white smooth-card flex flex-col justify-between space-y-4 group">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[11px] font-extrabold px-2.5 py-0.5 bg-amber-100 text-amber-900 rounded-full">{srv.badge}</span>
+                      <span className="text-[10px] text-emerald-700 font-bold">● Available Now</span>
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-1 group-hover:text-[#0B2D6B] transition-colors">{srv.name}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed mb-3">{srv.desc}</p>
+                    <div className="p-2.5 bg-white rounded-xl border border-slate-200 text-[11px] text-slate-700">
+                      <span className="text-slate-400 block text-[10px]">Assigned Master:</span>
+                      <strong className="text-[#0B2D6B]">{srv.provider}</strong>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Starting Rate</span>
+                      <span className="font-black text-[#0B2D6B] text-lg">{srv.price}</span>
+                    </div>
+                    <button onClick={() => { setActiveService(srv); setConfirmed(false); }} className="shimmer-btn px-4 py-2.5 bg-[#0B2D6B] hover:bg-[#F4C430] hover:text-[#0B2D6B] text-white font-extrabold text-xs rounded-xl shadow-md">
+                      Book {srv.name}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {activeService && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm text-slate-900">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border-2 border-[#0B2D6B] relative animate-scale-in">
+                <button onClick={() => setActiveService(null)} className="absolute top-4 right-4 text-slate-400 font-bold text-lg">✕</button>
+                <div className="bg-[#0B2D6B] text-white p-4 -m-6 mb-2 rounded-t-3xl">
+                  <span className="text-[10px] text-[#F4C430] uppercase font-bold">Direct Service Booking</span>
+                  <h3 className="text-xl font-black">Book {activeService.name} Service</h3>
+                </div>
+
+                {confirmed ? (
+                  <div className="text-center py-6 space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
+                    <h4 className="text-xl font-black text-emerald-900">{activeService.name} Service Confirmed!</h4>
+                    <p className="text-xs text-slate-600">Assigned Technician: {activeService.provider}</p>
+                    <button onClick={() => setActiveService(null)} className="w-full py-3 bg-[#0B2D6B] text-white font-bold rounded-xl text-xs">Done</button>
+                  </div>
+                ) : (
+                  <form onSubmit={(e) => { e.preventDefault(); setConfirmed(true); }} className="space-y-4 text-xs">
+                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
+                      <span className="text-blue-900 font-bold block">Assigned Technician:</span>
+                      <strong className="text-sm text-[#0B2D6B]">{activeService.provider}</strong>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Service Address *</label>
+                      <input type="text" required value={userAddress} onChange={e=>setUserAddress(e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 text-xs" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Date</label>
+                        <input type="date" required value={serviceDate} onChange={e=>setServiceDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-300 text-xs" />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Time Slot</label>
+                        <select value={timeSlot} onChange={e=>setTimeSlot(e.target.value)} className="w-full p-2.5 rounded-xl border border-slate-300 text-xs">
+                          <option>09:00 AM - 11:00 AM</option>
+                          <option>11:00 AM - 01:00 PM</option>
+                          <option>02:00 PM - 04:00 PM</option>
+                        </select>
+                      </div>
+                    </div>
+                    <label className="p-3 rounded-xl bg-amber-50 border border-amber-300 flex justify-between items-center cursor-pointer">
+                      <span className="font-bold text-amber-900">Emergency Dispatch (+₹150)</span>
+                      <input type="checkbox" checked={isEmergency} onChange={e=>setIsEmergency(e.target.checked)} className="w-4 h-4 accent-[#0B2D6B]" />
+                    </label>
+                    <button type="submit" className="shimmer-btn w-full py-3.5 bg-[#F4C430] text-[#0B2D6B] font-black rounded-xl hover:bg-yellow-400 text-xs shadow-lg">
+                      Confirm & Book {activeService.name} Now (Pay ₹{activeService.basePrice + 49 + (isEmergency ? 150 : 0)})
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      );
+    }
+
+    // 2. Interactive AI Diagnostic Chatbot Assistant Component
+    function AiChatbotAssistant() {
+      const [messages, setMessages] = useState([
+        {
+          id: 1,
+          sender: 'bot',
+          text: 'Hello! I am ServEase AI Diagnostic Bot 🤖. Upload a photo of your broken fixture or type your problem below, and I will analyze the symptoms, guide safe DIY fixes, predict required parts, and match you with a verified technician!',
+          timestamp: 'Just now'
+        }
+      ]);
+      const [inputText, setInputText] = useState('');
+      const [typing, setTyping] = useState(false);
+      const [attachedImg, setAttachedImg] = useState(null);
+
+      const handleImageAttach = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setAttachedImg({ url: event.target.result, name: file.name });
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const handleSend = (textStr) => {
+        const prompt = textStr || inputText;
+        if (!prompt && !attachedImg) return;
+
+        const imgToUse = attachedImg;
+        const userMsg = {
+          id: Date.now(),
+          sender: 'user',
+          text: prompt || 'Uploaded photo for AI diagnosis.',
+          image: imgToUse ? imgToUse.url : null,
+          timestamp: 'Just now'
+        };
+
+        setMessages(prev => [...prev, userMsg]);
+        setInputText('');
+        setAttachedImg(null);
+        setTyping(true);
+
+        setTimeout(() => {
+          let diagnosisData = {
+            title: 'Damaged Tap Cartridge & Seal Wear',
+            confidence: '94%',
+            steps: [
+              '1. Turn off under-sink water supply angle stop valve.',
+              '2. Tighten spindle coupling nut with adjustable wrench.',
+              '3. Wrap PTFE Teflon tape 4-5 times around worn threads.'
+            ],
+            parts: ['Quarter-Turn Ceramic Cartridge (₹180)', 'O-Ring Gaskets (₹30)', 'PTFE Tape (₹25)'],
+            trade: 'Plumber'
+          };
+
+          const l = (prompt || '').toLowerCase();
+          if (l.includes('ac') || l.includes('cool') || l.includes('air')) {
+            diagnosisData = {
+              title: 'AC Capacitor Failure & Filter Clogging',
+              confidence: '92%',
+              steps: [
+                '1. Switch off AC mains power switch.',
+                '2. Remove indoor unit plastic cover & wash mesh filter.',
+                '3. Check outdoor condenser fan for obstructions.'
+              ],
+              parts: ['45 MFD Dual Run Capacitor (₹450)', 'R32 Eco Gas Canister (₹850)'],
+              trade: 'AC Repair Specialist'
+            };
+          } else if (l.includes('spark') || l.includes('mcb') || l.includes('electric') || l.includes('wire')) {
+            diagnosisData = {
+              title: 'Overloaded Terminal Short Circuit',
+              confidence: '95%',
+              steps: [
+                '1. DANGER: Keep MCB Breaker switched OFF immediately.',
+                '2. Unplug heavy appliances from that line.',
+                '3. Do not touch damaged socket with bare hands.'
+              ],
+              parts: ['16A Modular Socket (₹220)', 'Single Pole 16A MCB (₹310)'],
+              trade: 'Electrician'
+            };
+          }
+
+          setTyping(false);
+          setMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            sender: 'bot',
+            text: 'AI Visual Diagnosis Complete!',
+            diagnosis: diagnosisData,
+            timestamp: 'Just now'
+          }]);
+        }, 1100);
+      };
+
+      return (
+        <section id="ai-chatbot" className="py-20 bg-gradient-to-b from-[#071939] via-[#0B2D6B] to-[#0D3478] text-white relative">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10 animate-slide-up">
+              <span className="px-4 py-1.5 rounded-full bg-yellow-400/20 text-[#F4C430] border border-[#F4C430]/40 text-xs font-black uppercase tracking-wider inline-block mb-3">
+                💬 Interactive AI Chatbot Feature
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">AI Diagnostic Chatbot Assistant</h2>
+              <p className="text-blue-100 text-sm">
+                Chat with ServEase AI, upload issue photos directly in the thread, and get instant step-by-step solutions!
+              </p>
+            </div>
+
+            <div className="bg-blue-950 rounded-3xl border-2 border-blue-800 shadow-2xl overflow-hidden flex flex-col h-[600px]">
+              <div className="bg-[#0B2D6B] p-4 border-b border-blue-800 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#F4C430] text-[#0B2D6B] flex items-center justify-center font-black text-xl">🤖</div>
+                  <div>
+                    <h3 className="font-black text-white text-base">ServEase AI Assistant</h3>
+                    <p className="text-xs text-emerald-400 font-bold">● Online • Photo & Text Ready</p>
+                  </div>
+                </div>
+                <button onClick={() => setMessages([{ id: 1, sender: 'bot', text: 'Hello! Upload a photo or describe your issue below!', timestamp: 'Just now' }])} className="text-xs text-blue-300 hover:text-white px-3 py-1 bg-blue-900 rounded-lg border border-blue-700">Clear</button>
+              </div>
+
+              <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+                {messages.map(m => (
+                  <div key={m.id} className={`flex gap-3 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {m.sender === 'bot' && <div className="w-8 h-8 rounded-xl bg-[#F4C430] text-[#0B2D6B] flex items-center justify-center font-bold shrink-0">🤖</div>}
+                    <div className={`max-w-[85%] space-y-2 ${m.sender === 'user' ? 'bg-[#0B2D6B] text-white p-4 rounded-2xl rounded-tr-none border border-blue-700' : 'bg-white text-slate-900 p-5 rounded-2xl rounded-tl-none border-2 border-yellow-400 shadow-lg'}`}>
+                      {m.image && <img src={m.image} alt="User Upload" className="w-full max-h-48 object-cover rounded-xl mb-2 border border-slate-200" />}
+                      <p className="font-medium leading-relaxed">{m.text}</p>
+                      {m.diagnosis && (
+                        <div className="pt-3 border-t border-slate-200 space-y-3 text-xs">
+                          <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 flex justify-between items-center">
+                            <div>
+                              <span className="text-[10px] font-black uppercase text-[#0B2D6B] block">Detected Issue</span>
+                              <strong className="text-slate-900 text-sm">{m.diagnosis.title}</strong>
+                            </div>
+                            <span className="px-2.5 py-1 bg-[#0B2D6B] text-[#F4C430] font-black rounded-full text-[11px]">{m.diagnosis.confidence} Match</span>
+                          </div>
+                          <div className="space-y-1">
+                            <strong className="text-[#0B2D6B] block">🟢 Recommended Solution:</strong>
+                            {m.diagnosis.steps.map((st, i) => (
+                              <div key={i} className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-800 font-medium">{st}</div>
+                            ))}
+                          </div>
+                          <div className="p-2.5 bg-yellow-50 rounded-xl border border-yellow-200 font-bold text-amber-900">
+                            📦 Predicted Parts: {m.diagnosis.parts.join(', ')}
+                          </div>
+                          <button onClick={() => alert(`Matched top verified ${m.diagnosis.trade} with pre-reserved parts!`)} className="shimmer-btn w-full py-2.5 bg-[#0B2D6B] text-white font-extrabold rounded-xl hover:bg-[#F4C430] hover:text-[#0B2D6B] transition-all">
+                            Dispatch Verified {m.diagnosis.trade} →
+                          </button>
+                        </div>
+                      )}
+                      <span className="text-[10px] text-slate-400 block text-right">{m.timestamp}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {typing && <div className="text-xs text-blue-200 italic">🤖 ServEase AI is analyzing symptoms...</div>}
+              </div>
+
+              <div className="px-4 py-2 bg-blue-900/40 border-t border-blue-800/80 flex flex-wrap gap-2 text-xs">
+                <span className="text-blue-300 font-bold self-center">Try:</span>
+                <button onClick={() => handleSend('Analyze bathroom tap leak photo')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">💧 Tap Leak</button>
+                <button onClick={() => handleSend('AC blowing warm air and humming')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">❄️ AC Warm Air</button>
+                <button onClick={() => handleSend('Sparking circuit breaker tripping')} className="px-3 py-1 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-blue-100 rounded-full font-semibold">⚡ Sparking Outlet</button>
+              </div>
+
+              {attachedImg && (
+                <div className="px-4 py-2 bg-blue-900 border-t border-blue-800 flex items-center justify-between text-xs text-white">
+                  <span>Photo attached: {attachedImg.name}</span>
+                  <button onClick={() => setAttachedImg(null)} className="text-rose-400 font-bold">✕</button>
+                </div>
+              )}
+
+              <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="p-4 bg-blue-950 border-t border-blue-800 flex items-center gap-3">
+                <label className="p-3 bg-blue-900 hover:bg-[#F4C430] hover:text-[#0B2D6B] text-[#F4C430] rounded-xl cursor-pointer transition-colors border border-blue-700" title="Attach Photo">
+                  📷
+                  <input type="file" accept="image/*" onChange={handleImageAttach} className="hidden" />
+                </label>
+                <input type="text" placeholder="Type your issue or attach photo..." value={inputText} onChange={e => setInputText(e.target.value)} className="flex-1 bg-blue-900 text-white p-3 rounded-xl border border-blue-700 text-xs focus:ring-2 focus:ring-[#F4C430] outline-none" />
+                <button type="submit" className="shimmer-btn p-3 bg-[#F4C430] text-[#0B2D6B] font-extrabold rounded-xl hover:bg-yellow-400">Send</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // Navbar
+    function Navbar({ user, onOpenAuth }) {
+      return (
+        <header className="sticky top-0 z-50 bg-[#0B2D6B]/95 backdrop-blur-md text-white border-b border-blue-900/50 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <a href="#home" className="flex items-center space-x-3 group">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#F4C430] to-yellow-300 flex items-center justify-center text-[#0B2D6B] font-black text-xl shadow-md group-hover:rotate-12 transition-transform">⚡</div>
+              <div>
+                <span className="text-2xl font-black text-white">Serv<span className="text-[#F4C430]">Ease</span></span>
+                <span className="text-[10px] block text-blue-200 font-semibold uppercase -mt-1">Smart Service Finder</span>
+              </div>
+            </a>
+
+            <nav className="hidden lg:flex items-center space-x-4 text-xs font-medium text-blue-100">
+              <a href="#home" className="hover:text-[#F4C430]">Home</a>
+              <a href="#direct-booking" className="text-[#F4C430] font-bold bg-yellow-400/10 px-2.5 py-1 rounded-lg border border-[#F4C430]/30">🎯 Book Services</a>
+              <a href="#ai-chatbot" className="hover:text-[#F4C430]">🤖 AI Chatbot</a>
+              <a href="#features" className="hover:text-[#F4C430]">Features</a>
+              <a href="#how-it-works" className="hover:text-[#F4C430]">How It Works</a>
+              <a href="#services" className="hover:text-[#F4C430]">Services</a>
+              <a href="#about" className="hover:text-[#F4C430]">About</a>
+              <a href="#contact" className="hover:text-[#F4C430]">Contact</a>
+            </nav>
+
+            <button onClick={onOpenAuth} className="shimmer-btn px-4 py-2.5 text-xs sm:text-sm font-extrabold rounded-lg bg-[#F4C430] text-[#0B2D6B] hover:bg-yellow-400">
+              {user ? `Logged in: ${user.displayName}` : 'Sign In / Register'}
+            </button>
+          </div>
+        </header>
+      );
+    }
+
+    // Hero Section
+    function Hero() {
+      return (
+        <section id="home" className="relative bg-gradient-to-b from-[#0B2D6B] via-[#0D3478] to-[#071F4B] text-white pt-12 pb-20 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-7 space-y-6 text-center lg:text-left animate-slide-up">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-900/70 border border-[#F4C430]/40 text-[#F4C430] text-xs font-semibold">
+                  ⚡ Smart Platform for Verified Local Service Providers
+                </div>
+
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]">
+                  Find Trusted Local Service Providers in <span className="text-[#F4C430] underline decoration-[#F4C430]/40">Minutes</span>
+                </h1>
+
+                <p className="text-lg sm:text-xl text-blue-100 max-w-2xl">
+                  Book verified electricians, plumbers, mechanics, carpenters, and cleaners near you with transparent pricing and real customer reviews.
+                </p>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                  <a href="#direct-booking" className="shimmer-btn w-full sm:w-auto px-8 py-4 rounded-xl bg-[#F4C430] text-[#0B2D6B] font-extrabold text-base hover:bg-yellow-400 shadow-xl text-center">
+                    🎯 Book Individual Service Now →
+                  </a>
+                  <a href="#ai-chatbot" className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/10 text-white font-bold text-base border border-white/20 text-center hover:bg-white/20">
+                    🤖 AI Chatbot Assistant
+                  </a>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 flex justify-center animate-float">
+                <div className="relative w-full max-w-sm sm:max-w-md">
+                  <div className="relative rounded-2xl overflow-hidden border-4 border-white/20 bg-slate-900 shadow-2xl">
+                    <img src="./hero_app_illustration.jpg" onError={(e)=>{e.target.onerror=null; e.target.src="./public/hero_app_illustration.jpg";}} alt="ServEase App" className="w-full h-auto object-cover" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // App Component
+    function App() {
+      const [user, setUser] = useState(mockAuthStore.currentUser);
+      const [authModalOpen, setAuthModalOpen] = useState(false);
+
+      useEffect(() => {
+        return mockAuthStore.onAuthStateChanged(setUser);
+      }, []);
+
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <Navbar user={user} onOpenAuth={() => setAuthModalOpen(true)} />
+          <Hero />
+
+          {/* 1. Direct Service Booking Portal */}
+          <DirectServiceBookingHub />
+
+          {/* 2. Interactive AI Diagnostic Chatbot Assistant */}
+          <AiChatbotAssistant />
+
+          {/* Features */}
+          <section id="features" className="py-20 bg-[#F5F7FA]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <h2 className="text-3xl font-extrabold text-[#0B2D6B] mb-12">Platform Features</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                {[
+                  { t: 'GPS-based Nearby Discovery', d: 'Instantly locate nearest verified professionals within 1-5 km radius.' },
+                  { t: 'Verified Professional Profiles', d: 'Government ID verification, background checks, and skill audits.' },
+                  { t: 'Transparent Price Estimates', d: 'Upfront standard rate cards with zero hidden fees.' },
+                  { t: 'Real-time Availability Tracking', d: 'See live status toggles ("Available Now", "Emergency Ready").' },
+                  { t: 'Emergency Booking Option', d: 'Priority dispatch hotline for 15-30 minute arrival.' },
+                  { t: 'Ratings & Reviews System', d: 'Transparent customer review network.' }
+                ].map((f, i) => (
+                  <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 smooth-card">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{f.t}</h3>
+                    <p className="text-slate-600 text-sm">{f.d}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* How It Works */}
+          <section id="how-it-works" className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <h2 className="text-3xl font-extrabold text-[#0B2D6B] mb-12">How ServEase Works</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                {[
+                  '1. Register / Login', '2. Select Service Category', '3. Enter Location or Use GPS',
+                  '4. View Nearby Verified Providers', '5. Compare Ratings & Pricing', '6. Book Service',
+                  '7. Provider Accepts Request', '8. Service Completed', '9. Payment & Feedback'
+                ].map((s, i) => (
+                  <div key={i} className="bg-[#F5F7FA] p-6 rounded-2xl border border-slate-200 font-bold text-slate-800 text-sm smooth-card">
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* About & Problem Statement */}
+          <section id="about" className="py-20 bg-[#F5F7FA]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white p-8 rounded-3xl border border-rose-200 space-y-3 smooth-card">
+                <span className="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded">The Problem</span>
+                <h3 className="text-2xl font-black text-slate-900">Traditional Local Hiring is Slow & Unverified</h3>
+                <blockquote className="text-slate-700 italic border-l-4 border-rose-400 pl-4 py-2 text-sm bg-rose-50">
+                  “People often struggle to find reliable local workers in unfamiliar areas. Traditional recommendations are slow, unverified, and may lead to overcharging or poor service quality.”
+                </blockquote>
+              </div>
+
+              <div className="bg-[#0B2D6B] text-white p-8 rounded-3xl border border-yellow-400 space-y-3 smooth-card">
+                <span className="text-xs font-bold text-[#F4C430] bg-blue-900 px-3 py-1 rounded">The ServEase Solution</span>
+                <h3 className="text-2xl font-black text-white">Smart Location & AI Diagnostic Matching</h3>
+                <p className="text-blue-100 text-sm bg-blue-950 p-4 rounded-xl">
+                  “ServEase connects users with verified local professionals using location-based matching, ratings, reviews, availability tracking, and estimated pricing.”
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Contact & Footer */}
+          <section id="contact" className="py-20 bg-[#F5F7FA]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+              <h2 className="text-3xl font-extrabold text-[#0B2D6B]">Contact ServEase</h2>
+              <p className="text-sm text-slate-600">Email: <strong>support@servease.com</strong> | Phone: <strong>+91 98765 43210</strong></p>
+            </div>
+          </section>
+
+          <footer className="bg-[#071939] text-white py-12 text-center space-y-3">
+            <h3 className="text-2xl font-black text-[#F4C430]">ServEase</h3>
+            <p className="text-xs text-blue-200">“Smart Platform for Verified Local Service Providers”</p>
+            <div className="text-xs text-blue-300 font-bold pt-2 border-t border-blue-900">
+              Developed by Ruturaj Dubal & Shravi Gaikwad
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

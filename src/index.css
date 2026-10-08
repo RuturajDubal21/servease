@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* Smooth Floating Motion */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(1deg); }
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 0.4; filter: blur(20px); }
+    50% { opacity: 0.8; filter: blur(30px); }
+  }
+
+  @keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(24px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.94); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 4s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slideUpFade 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .smooth-card {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .smooth-card:hover {
+    transform: translateY(-8px) scale(1.01);
+    box-shadow: 0 20px 35px -10px rgba(11, 45, 107, 0.15);
+  }
+}
